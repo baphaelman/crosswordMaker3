@@ -66,13 +66,13 @@ class Board:
                 for square in squares: # assign collected squares
                     self.square_to_col_start[square] = col_start
 
-        # add StartSquares in relation to blocks
+        # add StartSquares (and squares_to_starts values) in relation to blocks
         for block in blocks:
             # row_start_squares
             row_square = Square(block.row, block.col + 1)
             if block.col < self.c - 1 and not row_square in blocks:
                 length = 1
-                squares = [Square(block.row, block.col + length)]
+                squares = [row_square]
                 while block.col + length < self.c - 1 and not Square(block.row, block.col + length + 1) in blocks: # not over edge of board and not over another block
                     length += 1
                     squares.append(Square(block.row, block.col + length))
@@ -85,10 +85,10 @@ class Board:
             col_square = Square(block.row + 1, block.col)
             if block.row < self.r - 1 and not col_square in blocks:
                 length = 1
-                squares = [Square(block.row + length, block.col)]
+                squares = [col_square]
                 while block.row + length < self.r - 1 and not Square(block.row + length + 1, block.col) in blocks: # not over edge of board and not over another block
                     length += 1
-                    squares.append(Square(block.row, block.col + length))
+                    squares.append(Square(block.row + length, block.col))
                 col_start = ColumnStartSquare(block.row + 1, block.col, length)
                 col_start_squares.append(col_start)
                 for square in squares:
@@ -147,3 +147,16 @@ class Board:
                         return_str += self.grid[row][col] + " " # if empty and 'center'
             return_str += "\n"
         print(return_str)
+
+specified_chars = {Square(4, 5): 'r', Square(4, 6): 'o', Square(4, 7): 'w'}                                                
+blocks = [Square(0, 6), Square(0, 7), Square(1, 7), Square(3, 2), Square(3, 3), Square(4, 4), Square(5, 5), Square(5, 6), Square(5, 0), Square(6, 0), Square(6, 1), Square(7, 0), Square(7, 1), Square(7, 2), Square(7, 3)]
+b = Board([8, 8], blocks, specified_chars)
+
+for row in range(b.r):
+    for col in range(b.c):
+        s = Square(row, col)
+        if not b.grid[s.row][s.col] == "#":
+            string = str(b.square_to_row_start[Square(row, col)])
+            string += " " + str(b.square_to_col_start[Square(row, col)])
+            print(string)
+    print()
