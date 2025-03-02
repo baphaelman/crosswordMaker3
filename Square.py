@@ -26,7 +26,7 @@ class StartSquare(Square):
 class ColumnStartSquare(StartSquare):
     def __init__(self, row, col, len):
         super().__init__(row, col, len)
-        self.word = ["_"] * self.len
+        self.word = ["_" for _ in range(self.len)]
     
     def __repr__(self):
         return "(" + str(self.row) + "," + str(self.col) + "," + str(self.word) + ")" # fix str(self.word) lol

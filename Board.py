@@ -45,10 +45,10 @@ class Board:
             if not Square(row, 0) in blocks:
                 length = 0
                 squares = [Square(row, length)]
-                while length < self.c - 1 and not Square(row, length) in blocks: # not over edge of board and not over another block
+                while length < self.c - 1 and not Square(row, length + 1) in blocks: # not over edge of board and not over another block
                     length += 1
                     squares.append(Square(row, length))
-                row_start = StartSquare(row, 0, length)
+                row_start = StartSquare(row, 0, length + 1)
                 row_start_squares.append(row_start)
                 for square in squares: # assign collected squares
                     self.square_to_row_start[square] = row_start
@@ -59,10 +59,11 @@ class Board:
             if not Square(0, col) in blocks:
                 length = 0
                 squares = [Square(length, col)]
-                while length < self.r - 1 and not Square(length, col) in blocks: # not over edge of board and not over another block
+                while length < self.r - 1 and not Square(length + 1, col) in blocks: # not over edge of board and not over another block
                     length += 1
                     squares.append(Square(length, col))
-                col_start = ColumnStartSquare(0, col, length)
+
+                col_start = ColumnStartSquare(0, col, length + 1)
                 col_start_squares.append(col_start)
                 for square in squares: # assign collected squares
                     self.square_to_col_start[square] = col_start
@@ -103,6 +104,7 @@ class Board:
     
     def generate_boards_helper(self, needed_words):
         if len(needed_words) == 0:
+            yield self
             return
         
         word = needed_words[0]
@@ -111,15 +113,43 @@ class Board:
         viable_col_starts = [square for square in self.col_start_squares if square.len == length]
 
         for row_start in viable_row_starts:
-            return False
             # insert word
+            changed_words = self.insert_word_at_row_start(word, row_start)
             # yield from self.generate_boards_helper(needed_words[1:])
+            yield from self.generate_boards_helper(needed_words[1:])
             # undo inserting word
+            self.undo_row_insertion(word, changed_words)
                 
 
     # returns False if cannot insert, modifies grid and returns list of Squares that were modified if it can
-    #def insert_word_at_row_start(self, word, row_start):
+    # still need to do perpendicular checking
+    def insert_word_at_row_start(self, word, row_start):
+        row, col = row_start.row, row_start.col
+        changed_squares = {} # square to word index, to return keys
 
+        # go through squares, checking for validity
+        for i in range(len(word)):
+            square = Square(row, col + i)
+            if self.grid[square] != '_': # if established with letter already
+                if self.grid[square] != word[i]: # if wrong letter. otherwise look at next square
+                    return False
+            else:
+                changed_squares[square] = i
+        
+        # if valid, insert (should maybe replace with looped insert_char call?)
+        for square in changed_squares:
+            letter = word[changed_squares[square]]
+
+            self.grid[square] = letter # change grid
+            col_start = self.square_to_col_start[square]
+            col_start.word[square.row - col_start.row] = letter # change col_start's word
+        return changed_squares
+
+    def undo_row_insertion(self, word, changed_squares):
+        for square in changed_squares:
+            self.grid[square] = '_' # change grid
+            col_start = self.square_to_col_start[square]
+            col_start.word[square.row - col_start.row] = '_' # change col_start's word
 
     def __repr__(self):
         return_str = ""
@@ -164,5 +194,18 @@ def square_to_starts_test():
                 print(string)
         print()
 
+def adrienne_test():
+    blocks = [Square(0, 0), Square(0, 5), Square(5, 0), Square(5, 5), Square(3, 2), Square(3, 3)]                     
+    specified_chars = {Square(0, 1): 'r', Square(0, 4): 'b', Square(2, 0): 'a', Square(2, 5): 'f', Square(4, 0): 't', Square(4, 5): 'y'}
+    b = Board([6, 6], blocks, specified_chars)
+    b.print_starts()
+    g = b.generate_boards(['roob'])
+    b2 = next(g)
+    b2.print_starts()
+
+
+    b3 = next(g)
+    b3.print_starts()
+
 if __name__ == "__main__":
-    square_to_starts_test()
+    adrienne_test()
