@@ -7,13 +7,26 @@ class Board:
     # row_start_squares: list of row start squares, ordered by row then column (increasing)
     # col_start_squares: list of col start squares
 
-    def __init__(self, dimensions, blocks):
+    # METHODS
+
+    # HELPERS
+    # print_starts: prints board with >, v, and X indicating row, column, and both starts respectively
+
+    def __init__(self, dimensions, blocks, specified_chars):
         self.r, self.c = dimensions[0], dimensions[1]
-        self.grid = self.initialize_grid(blocks)
+        self.grid = self.initialize_grid(blocks, specified_chars)
         self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks)
     
-    def initialize_grid(self, blocks):
-        grid = [["_" for col in range(self.c)] for row in range(self.r)]
+    def initialize_grid(self, blocks, specified_chars):
+        grid = [["" for col in range(self.c)] for row in range(self.r)]
+        for row in range(self.r):
+            for col in range(self.c):
+                square = Square(row, col)
+                if square in specified_chars:
+                    grid[row][col] = specified_chars[square]
+                else:
+                    grid[row][col] = "_"
+
         for block in blocks:
             grid[block.row][block.col] = "#"
         return grid
@@ -70,15 +83,18 @@ class Board:
         return_str = ""
         for row in range(self.r):
             for col in range(self.c):
-                this_square = Square(row, col)
-                if this_square in self.row_start_squares:
-                    if this_square in self.col_start_squares:
-                        return_str += "X "
-                    else:
-                        return_str += "> "
-                elif this_square in self.col_start_squares:
-                    return_str += "v "
-                else:
+                if self.grid[row][col] != "_": # if character at square
                     return_str += self.grid[row][col] + " "
+                else:
+                    this_square = Square(row, col)
+                    if this_square in self.row_start_squares:
+                        if this_square in self.col_start_squares: # if both column and row start
+                            return_str += "X "
+                        else: # if just row start
+                            return_str += "> "
+                    elif this_square in self.col_start_squares: # if just column start
+                        return_str += "v "
+                    else:
+                        return_str += self.grid[row][col] + " " # if empty and 'center'
             return_str += "\n"
         print(return_str)
