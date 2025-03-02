@@ -22,11 +22,16 @@ class Board:
         self.grid = self.initialize_grid(blocks, specified_chars)
     
     def initialize_grid(self, blocks, specified_chars):
-        grid = {Square(row, col): specified_chars.get(Square(row, col), '_')  # defaults to '_'
-            for row in range(self.r)
-            for col in range(self.c)
-        }
-
+        grid = {}
+        for row in range(self.r):
+            for col in range(self.c):
+                square = Square(row, col)
+                this_char = specified_chars.get(Square(row, col), '_')
+                grid[square] = this_char
+                if this_char != '_': # if character given
+                    start_square = self.square_to_col_start[square]
+                    start_square.word[square.row - start_square.row] = this_char
+                    
         for block in blocks:
             grid[block] = "#"
         return grid
