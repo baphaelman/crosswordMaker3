@@ -3,7 +3,7 @@ from Square import *
 class Board:
     # ATTRIBUTES
     # r, c: number of rows and columns, respectively
-    # grid: rxc matrix of Squares
+    # grid: dictionary from Squares to their characters
     # row_start_squares: list of row start squares, ordered by row then column (increasing)
     # col_start_squares: list of col start squares
     # square_to_row_start: dictionary of squares to their row_starts
@@ -17,22 +17,18 @@ class Board:
 
     def __init__(self, dimensions, blocks, specified_chars):
         self.r, self.c = dimensions[0], dimensions[1]
-        self.grid = self.initialize_grid(blocks, specified_chars) # also assigns square_to_row_ and col_start
         self.square_to_row_start, self.square_to_col_start = {}, {}
-        self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks)
+        self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks) # also assigns square_to_row_ and col_start
+        self.grid = self.initialize_grid(blocks, specified_chars)
     
     def initialize_grid(self, blocks, specified_chars):
-        grid = [["" for col in range(self.c)] for row in range(self.r)]
-        for row in range(self.r):
-            for col in range(self.c):
-                square = Square(row, col)
-                if square in specified_chars:
-                    grid[row][col] = specified_chars[square]
-                else:
-                    grid[row][col] = "_"
+        grid = {Square(row, col): specified_chars.get(Square(row, col), '_')  # defaults to '_'
+            for row in range(self.r)
+            for col in range(self.c)
+        }
 
         for block in blocks:
-            grid[block.row][block.col] = "#"
+            grid[block] = "#"
         return grid
     
     def assign_start_squares(self, blocks):
@@ -124,7 +120,8 @@ class Board:
         return_str = ""
         for row in range(self.r):
             for col in range(self.c):
-                return_str += self.grid[row][col] + " "
+                square = Square(row, col)
+                return_str += self.grid[square] + " "
             return_str += "\n"
         return return_str
     
@@ -132,31 +129,35 @@ class Board:
         return_str = ""
         for row in range(self.r):
             for col in range(self.c):
-                if self.grid[row][col] != "_": # if character at square
-                    return_str += self.grid[row][col] + " "
+                square = Square(row, col)
+                if self.grid[square] != "_": # if character at square
+                    return_str += self.grid[square] + " "
                 else:
-                    this_square = Square(row, col)
-                    if this_square in self.row_start_squares:
-                        if this_square in self.col_start_squares: # if both column and row start
+                    if square in self.row_start_squares:
+                        if square in self.col_start_squares: # if both column and row start
                             return_str += "X "
                         else: # if just row start
                             return_str += "> "
-                    elif this_square in self.col_start_squares: # if just column start
+                    elif square in self.col_start_squares: # if just column start
                         return_str += "v "
                     else:
-                        return_str += self.grid[row][col] + " " # if empty and 'center'
+                        return_str += self.grid[square] + " " # if empty and 'center'
             return_str += "\n"
         print(return_str)
 
-specified_chars = {Square(4, 5): 'r', Square(4, 6): 'o', Square(4, 7): 'w'}                                                
-blocks = [Square(0, 6), Square(0, 7), Square(1, 7), Square(3, 2), Square(3, 3), Square(4, 4), Square(5, 5), Square(5, 6), Square(5, 0), Square(6, 0), Square(6, 1), Square(7, 0), Square(7, 1), Square(7, 2), Square(7, 3)]
-b = Board([8, 8], blocks, specified_chars)
+def square_to_starts_test():
+    specified_chars = {Square(4, 5): 'r', Square(4, 6): 'o', Square(4, 7): 'w'}                                                
+    blocks = [Square(0, 6), Square(0, 7), Square(1, 7), Square(3, 2), Square(3, 3), Square(4, 4), Square(5, 5), Square(5, 6), Square(5, 0), Square(6, 0), Square(6, 1), Square(7, 0), Square(7, 1), Square(7, 2), Square(7, 3)]
+    b = Board([8, 8], blocks, specified_chars)
 
-for row in range(b.r):
-    for col in range(b.c):
-        s = Square(row, col)
-        if not b.grid[s.row][s.col] == "#":
-            string = str(b.square_to_row_start[Square(row, col)])
-            string += " " + str(b.square_to_col_start[Square(row, col)])
-            print(string)
-    print()
+    for row in range(b.r):
+        for col in range(b.c):
+            s = Square(row, col)
+            if not b.grid[s] == "#":
+                string = str(b.square_to_row_start[Square(row, col)])
+                string += " " + str(b.square_to_col_start[Square(row, col)])
+                print(string)
+        print()
+
+if __name__ == "__main__":
+    square_to_starts_test()
