@@ -8,6 +8,8 @@ class Board:
     # col_start_squares: list of col start squares
     # square_to_row_start: dictionary of squares to their row_starts
     # square_to_col_start: dictionary of squares to their col_starts
+    # incomplete_row_start_squares: row StartSquares to fill
+    # inserted_words: list of words that have been inserted
 
     # METHODS
     # generate_boards(words): generates all boards with desired words
@@ -19,7 +21,10 @@ class Board:
         self.r, self.c = dimensions[0], dimensions[1]
         self.square_to_row_start, self.square_to_col_start = {}, {}
         self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks) # also assigns square_to_row_ and col_start
+        self.incomplete_row_start_squares = list(self.row_start_squares)
         self.grid = self.initialize_grid(blocks, specified_chars)
+
+        self.inserted_words = []
     
     def initialize_grid(self, blocks, specified_chars):
         grid = {}
@@ -99,33 +104,52 @@ class Board:
         return row_start_squares, col_start_squares
     
     def generate_boards(self, needed_words):
-        sorted_words = sorted(needed_words, reverse=True)
+        sorted_words = sorted(needed_words, key=len, reverse=True)
         yield from self.generate_boards_helper(sorted_words)
     
-    def generate_boards_helper(self, needed_words):
+    def generate_boards_helper(self, needed_words, rows_only=False, cols_only=False): # rows_ and cols_only for testing
         if len(needed_words) == 0:
             yield self
             return
         
         word = needed_words[0]
         length = len(word)
-        viable_row_starts = [square for square in self.row_start_squares if square.len == length]
-        viable_col_starts = [square for square in self.col_start_squares if square.len == length]
 
-        for row_start in viable_row_starts:
-            # insert word
-            changed_words = self.insert_word_at_row_start(word, row_start)
-            # yield from self.generate_boards_helper(needed_words[1:])
-            yield from self.generate_boards_helper(needed_words[1:])
-            # undo inserting word
-            self.undo_row_insertion(word, changed_words)
-                
+        if not cols_only:
+            viable_row_starts = [square for square in self.incomplete_row_start_squares if square.len == length]
+            for row_start in viable_row_starts:
+                changed_words = self.insert_word_at_start_square(word, row_start, row=True) # insert word
+                if type(changed_words) == dict: # if successful
+                    yield from self.generate_boards_helper(needed_words[1:]) # recurse
+                    self.undo_insertion(changed_words, row=True) # undo inserting word
+        
+        if not rows_only:
+            viable_col_starts = [square for square in self.col_start_squares if square.len == length]
+            # do same with col_starts
+            for col_start in viable_col_starts:
+                changed_words = self.insert_word_at_start_square(word, col_start, col=True)
+                if type(changed_words) == dict:
+                    yield from self.generate_boards_helper(needed_words[1:])
+                    self.undo_insertion(changed_words, col=True)
 
     # returns False if cannot insert, modifies grid and returns list of Squares that were modified if it can
     # still need to do perpendicular checking
+    def insert_word_at_start_square(self, word, start_square, col=False, row=False):
+        if not col and not row:
+            raise ValueError("Must specify row or col")
+        
+
+        if col:
+            return_val = self.insert_word_at_col_start(word, start_square)
+        else:
+            return_val = self.insert_word_at_row_start(word, start_square)
+        if type(return_val) == dict: # if word has been inserted
+            self.inserted_words.append(word)
+        return return_val
+
     def insert_word_at_row_start(self, word, row_start):
         row, col = row_start.row, row_start.col
-        changed_squares = {} # square to word index, to return keys
+        changed_squares = {} # square to word index, to return
 
         # go through squares, checking for validity
         for i in range(len(word)):
@@ -134,9 +158,11 @@ class Board:
                 if self.grid[square] != word[i]: # if wrong letter. otherwise look at next square
                     return False
             else:
+                # perpendicular testing here
                 changed_squares[square] = i
         
         # if valid, insert (should maybe replace with looped insert_char call?)
+        self.incomplete_row_start_squares.remove(row_start)
         for square in changed_squares:
             letter = word[changed_squares[square]]
 
@@ -144,12 +170,52 @@ class Board:
             col_start = self.square_to_col_start[square]
             col_start.word[square.row - col_start.row] = letter # change col_start's word
         return changed_squares
+    
+    def insert_word_at_col_start(self, word, col_start):
+        row, col = col_start.row, col_start.col
+        changed_squares = {} # square to word index, to return
 
-    def undo_row_insertion(self, word, changed_squares):
+        # go through squares, checking for validity
+        for i in range(len(word)):
+            square = Square(row + i, col)
+            if self.grid[square] != '_': # if established with letter already
+                if self.grid[square] != word[i]: # if wrong letter. otherwise look at next square
+                    return False
+            else:
+                # perpendicular testing here
+                changed_squares[square] = i
+        
+        # if valid, insert (should maybe replace with looped insert_char call?)
+        col_start.word = list(word)
         for square in changed_squares:
+            letter = word[changed_squares[square]]
+            self.grid[square] = letter # change grid
+        return changed_squares
+    
+    def undo_insertion(self, changed_squares, col=False, row=False):
+        if not col and not row:
+            raise ValueError("Must specify row or col")
+        
+        if col:
+            self.undo_col_insertion(changed_squares)
+        else:
+            self.undo_row_insertion(changed_squares)
+        self.inserted_words.pop()
+
+    def undo_row_insertion(self, changed_squares):
+        s = False
+        for square in changed_squares:
+            s = square
             self.grid[square] = '_' # change grid
             col_start = self.square_to_col_start[square]
             col_start.word[square.row - col_start.row] = '_' # change col_start's word
+        if s: # if word wasn't already filled, basically
+            row_start = self.square_to_row_start[s]
+            self.incomplete_row_start_squares.append(row_start)
+    
+    def undo_col_insertion(self, changed_squares):
+        for square in changed_squares:
+            self.grid[square] = '_' # change grid
 
     def __repr__(self):
         return_str = ""

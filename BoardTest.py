@@ -48,6 +48,62 @@ class TestBoardGenerator(unittest.TestCase):
                 self.assertTrue(square.word == starts_with_chars[square], 'unexpected word')
             else:
                 self.assertTrue(square.word == ['_'] * square.len)
+    
+    def test_insertion_and_undo(self):
+        b = create_board()
+        # insertion
+        undo_input = b.insert_word_at_row_start('hoc', Square(2, 3))
+        check_squares = {Square(1, 1): ['r', '_', '_', '_'], Square(0, 2): ['_', 'o'], Square(0, 3): ['_', 'w', 'h'], Square(2, 4): ['o'], Square(2, 5): ['c', 'o', 'l']}
+        for square in b.col_start_squares:
+            if square in check_squares:
+                self.assertTrue(square.word == check_squares[square], 'unexpected word')
+            else:
+                self.assertTrue(square.word == ['_'] * square.len, f'unexpected length: {square}')
+        
+        # undoing
+        b.undo_row_insertion(undo_input)
+        b2 = create_board()
+        self.assertTrue(b.row_start_squares == b2.row_start_squares)
+        for b_col_start in b.col_start_squares:
+            b2_col_start = [s for s in b2.col_start_squares if s == b_col_start][0]
+            self.assertTrue(b_col_start.word == b2_col_start.word)
+        
+        for row in range(b.r):
+            for col in range(b.c):
+                s = Square(row, col)
+                self.assertTrue(b.grid[s] == b2.grid[s])
+    
+    def test_invalid_insertion(self):
+        b = create_board()
+        b2 = create_board()
+        b.insert_word_at_row_start('add', Square(2, 3))
+        self.assertTrue(b.grid == b2.grid)
+        for b_col_start in b.col_start_squares:
+            b2_col_start = [s for s in b2.col_start_squares if s == b_col_start][0]
+            self.assertTrue(b_col_start.word == b2_col_start.word)
+    
+    def test_generate_boards(self):
+        # rows
+        b = create_board()
+        row_words = ['abc', 'row', 'm', 'efc', 'ij', 'o', 'gh', 'kll', 'd', 'nop']
+        g = b.generate_boards_helper(sorted(row_words, key=len, reverse=True), rows_only=True)
+        b2 = next(g)
+        b2.print_starts()
+
+        # cols
+        c = create_board()
+        col_words = ['ao', 'bwe', 'c', 'rdgj', 'f', 'col', 'h', 'im', 'ko', 'lp', 'n']
+        g = c.generate_boards_helper(sorted(col_words, key=len, reverse=True), cols_only=True)
+        c2 = next(g)
+        c2.print_starts()
+        self.assertTrue(c2.grid == b2.grid, "col and row grids don't match")
+
+        # both
+        d = create_board()
+        g = d.generate_boards(row_words + col_words)
+        d2 = next(g)
+        d2.print_starts()
+
 
 def create_board():
     blocks = [Square(0, 0), Square(0, 1), Square(0, 5),
