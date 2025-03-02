@@ -1,6 +1,7 @@
 import unittest
 from Board import Board
 from Square import *
+from parser import word_bank
 
 class TestBoardGenerator(unittest.TestCase):
     def test_row_starts(self):
@@ -103,6 +104,7 @@ class TestBoardGenerator(unittest.TestCase):
         g = d.generate_boards(row_words + col_words)
         d2 = next(g)
         d2.print_starts()
+        self.assertTrue(set(d2.inserted_words) == set(row_words + col_words), f"words inserted incorrectly")
 
 
 def create_board():
@@ -114,7 +116,7 @@ def create_board():
                 Square(5, 1), Square(5, 5)]                     
     specified_chars = {Square(1, 1): 'r', Square(1, 2): 'o', Square(1, 3): 'w',
                         Square(2, 5): 'c', Square(3, 5): 'o', Square(4, 5): 'l'}
-    b = Board([6, 6], blocks, specified_chars)
+    b = Board([6, 6], blocks, specified_chars, word_bank)
     return b
 
 if __name__ == '__main__':

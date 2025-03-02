@@ -10,6 +10,7 @@ class Board:
     # square_to_col_start: dictionary of squares to their col_starts
     # incomplete_row_start_squares: row StartSquares to fill
     # inserted_words: list of words that have been inserted
+    # word_bank: words that can be used to fill the board
 
     # METHODS
     # generate_boards(words): generates all boards with desired words
@@ -17,12 +18,13 @@ class Board:
     # HELPERS
     # print_starts(): prints board with >, v, and X indicating row, column, and both starts respectively
 
-    def __init__(self, dimensions, blocks, specified_chars):
+    def __init__(self, dimensions, blocks, specified_chars, word_bank):
         self.r, self.c = dimensions[0], dimensions[1]
         self.square_to_row_start, self.square_to_col_start = {}, {}
         self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks) # also assigns square_to_row_ and col_start
         self.incomplete_row_start_squares = list(self.row_start_squares)
         self.grid = self.initialize_grid(blocks, specified_chars)
+        self.word_bank = word_bank
 
         self.inserted_words = []
     
