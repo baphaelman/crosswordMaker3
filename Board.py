@@ -6,6 +6,8 @@ class Board:
     # grid: rxc matrix of Squares
     # row_start_squares: list of row start squares, ordered by row then column (increasing)
     # col_start_squares: list of col start squares
+    # square_to_row_start: dictionary of squares to their row_starts
+    # square_to_col_start: dictionary of squares to their col_starts
 
     # METHODS
     # generate_boards(words): generates all boards with desired words
@@ -15,7 +17,8 @@ class Board:
 
     def __init__(self, dimensions, blocks, specified_chars):
         self.r, self.c = dimensions[0], dimensions[1]
-        self.grid = self.initialize_grid(blocks, specified_chars)
+        self.grid = self.initialize_grid(blocks, specified_chars) # also assigns square_to_row_ and col_start
+        self.square_to_row_start, self.square_to_col_start = {}, {}
         self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks)
     
     def initialize_grid(self, blocks, specified_chars):
@@ -38,21 +41,30 @@ class Board:
 
         # add StartSquares for edges of board
         for row in range(self.r):
-            edge_row_square = Square(row, 0)
-            if not edge_row_square in blocks:
-                length = 1
+            if not Square(row, 0) in blocks:
+                length = 0
+                squares = [Square(row, length)]
                 while length < self.c - 1 and not Square(row, length) in blocks: # not over edge of board and not over another block
                     length += 1
-                row_start_squares.append(StartSquare(row, 0, length))
+                    squares.append(Square(row, length))
+                row_start = StartSquare(row, 0, length)
+                row_start_squares.append(row_start)
+                for square in squares: # assign collected squares
+                    self.square_to_row_start[square] = row_start
+                
         
         # add ColumnStartSquares for edges of board
         for col in range(self.c):
-            edge_col_square = Square(0, col)
-            if not edge_col_square in blocks:
-                length = 1
+            if not Square(0, col) in blocks:
+                length = 0
+                squares = [Square(length, col)]
                 while length < self.r - 1 and not Square(length, col) in blocks: # not over edge of board and not over another block
                     length += 1
-                col_start_squares.append(ColumnStartSquare(0, col, length))
+                    squares.append(Square(length, col))
+                col_start = ColumnStartSquare(0, col, length)
+                col_start_squares.append(col_start)
+                for square in squares: # assign collected squares
+                    self.square_to_col_start[square] = col_start
 
         # add StartSquares in relation to blocks
         for block in blocks:
@@ -60,17 +72,27 @@ class Board:
             row_square = Square(block.row, block.col + 1)
             if block.col < self.c - 1 and not row_square in blocks:
                 length = 1
+                squares = [Square(block.row, block.col + length)]
                 while block.col + length < self.c - 1 and not Square(block.row, block.col + length + 1) in blocks: # not over edge of board and not over another block
                     length += 1
-                row_start_squares.append(StartSquare(block.row, block.col + 1, length))
+                    squares.append(Square(block.row, block.col + length))
+                row_start = StartSquare(block.row, block.col + 1, length)
+                row_start_squares.append(row_start)
+                for square in squares:
+                    self.square_to_row_start[square] = row_start
             
             # col_start_squares
             col_square = Square(block.row + 1, block.col)
             if block.row < self.r - 1 and not col_square in blocks:
                 length = 1
+                squares = [Square(block.row + length, block.col)]
                 while block.row + length < self.r - 1 and not Square(block.row + length + 1, block.col) in blocks: # not over edge of board and not over another block
                     length += 1
-                col_start_squares.append(ColumnStartSquare(block.row + 1, block.col, length))
+                    squares.append(Square(block.row, block.col + length))
+                col_start = ColumnStartSquare(block.row + 1, block.col, length)
+                col_start_squares.append(col_start)
+                for square in squares:
+                    self.square_to_col_start[square] = col_start
 
         return row_start_squares, col_start_squares
     
@@ -80,7 +102,7 @@ class Board:
     
     def generate_boards_helper(self, needed_words):
         if len(needed_words) == 0:
-            yield
+            return
         
         word = needed_words[0]
         length = len(word)
@@ -88,8 +110,11 @@ class Board:
         viable_col_starts = [square for square in self.col_start_squares if square.len == length]
 
         for row_start in viable_row_starts:
-            if self.insert_word_at_row_start(word, row_start):
-                return False
+            return False
+            # insert word
+            # yield from self.generate_boards_helper(needed_words[1:])
+            # undo inserting word
+                
 
     # returns False if cannot insert, modifies grid and returns list of Squares that were modified if it can
     #def insert_word_at_row_start(self, word, row_start):
