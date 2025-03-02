@@ -9,36 +9,76 @@ class Board:
 
     def __init__(self, dimensions, blocks):
         self.r, self.c = dimensions[0], dimensions[1]
-        self.initialize_grid(blocks)
-        self.assign_start_squares(blocks)
-        for square in self.row_start_squares:
-            print(square)
-        print()
-        for square in self.col_start_squares:
-            print(square)
+        self.grid = self.initialize_grid(blocks)
+        self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks)
     
     def initialize_grid(self, blocks):
-        self.grid = [[Square(row, col) for col in range(self.c)] for row in range(self.r)]
+        grid = [["_" for col in range(self.c)] for row in range(self.r)]
         for block in blocks:
-            self.grid[block.row][block.col].is_block = True
+            grid[block.row][block.col] = "#"
+        return grid
     
     def assign_start_squares(self, blocks):
-        self.row_start_squares = []
-        self.col_start_squares = []
+        row_start_squares = []
+        col_start_squares = []
         for block in blocks:
-            print(block)
             # row_start_squares
-            if block.col < self.c - 1 and not [bl for bl in blocks if bl == Square(block.row, block.col + 1)]:
+            row_square = Square(block.row, block.col + 1)
+            if block.col < self.c - 1 and not row_square in blocks:
                 length = 1
-                while block.col + length < self.c - 1 and not [bl for bl in blocks if bl == Square(block.row, block.col + length)]: # not over edge of board and not over another block
+                while block.col + length < self.c - 1 and not row_square in blocks: # not over edge of board and not over another block
                     length += 1
-                self.row_start_squares.append(StartSquare(block.row, block.col + 1, length))
-                print('row: ', self.row_start_squares)
+                row_start_squares.append(StartSquare(block.row, block.col + 1, length))
             
             # col_start_squares
-            if block.row < self.r - 1 and not [bl for bl in blocks if bl == Square(block.row + 1, block.col)]:
+            col_square = Square(block.row + 1, block.col)
+            if block.row < self.r - 1 and not col_square in blocks:
                 length = 1
-                while block.row + length < self.r - 1 and not [bl for bl in blocks if bl == Square(block.row + length, block.col)]: # not over edge of board and not over another block
+                while block.row + length < self.r - 1 and not col_square in blocks: # not over edge of board and not over another block
                     length += 1
-                self.col_start_squares.append(StartSquare(block.row + 1, block.col, length))
-                print('col: ', self.col_start_squares)
+                col_start_squares.append(ColumnStartSquare(block.row + 1, block.col, length))
+
+        # add StartSquares for edges of board
+        for row in range(self.r):
+            edge_row_square = Square(row, 0)
+            if not edge_row_square in blocks:
+                length = 1
+                while block.col + length < self.c - 1 and not edge_row_square in blocks: # not over edge of board and not over another block
+                    length += 1
+                row_start_squares.append(StartSquare(row, 0, length))
+        
+        # add ColumnStartSquares for edges of board
+        for col in range(self.c):
+            edge_col_square = Square(0, col)
+            if not edge_col_square in blocks:
+                length = 1
+                while block.row + length < self.r - 1 and not edge_col_square in blocks: # not over edge of board and not over another block
+                    length += 1
+                col_start_squares.append(ColumnStartSquare(0, col, length))
+
+        return row_start_squares, col_start_squares
+
+    def __repr__(self):
+        return_str = ""
+        for row in range(self.r):
+            for col in range(self.c):
+                return_str += self.grid[row][col] + " "
+            return_str += "\n"
+        return return_str
+    
+    def print_starts(self):
+        return_str = ""
+        for row in range(self.r):
+            for col in range(self.c):
+                this_square = Square(row, col)
+                if this_square in self.row_start_squares:
+                    if this_square in self.col_start_squares:
+                        return_str += "X "
+                    else:
+                        return_str += "> "
+                elif this_square in self.col_start_squares:
+                    return_str += "v "
+                else:
+                    return_str += self.grid[row][col] + " "
+            return_str += "\n"
+        print(return_str)

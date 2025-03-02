@@ -22,9 +22,6 @@ class StartSquare(Square):
     
     def __repr__(self):
         return "(" + str(self.row) + "," + str(self.col) + "," + str(self.len) + ")"
-    
-    def __hash__(self):
-        return hash((self.row, self.col, self.len))
 
 class ColumnStartSquare(StartSquare):
     def __init__(self, row, col, len):
