@@ -129,11 +129,72 @@ class TestBoardGenerator(unittest.TestCase):
                 Square(5, 3), Square(5, 4), Square(5, 5)]
         specified_chars = {Square(3, 2): 'o'}
         b = Board([6, 6], blocks, specified_chars, word_bank)
-        g_row = b.generate_boards(['fml', 'down', 'truly', 'orons', 'foot', 'coo'])
-        filled = next(g_row)
-        filled.print_starts()
-        self.assertTrue(1 > 0)
+        g_row = b.generate_boards_helper(['coo', 'down', 'truly', 'orons', 'foot', 'fml'], rows_only=True)
+        row_filled = next(g_row)
 
+        g_cols = b.generate_boards_helper(['count', 'owls', 'ony', 'drool', 'trom', 'off'], cols_only=True)
+        col_filled = next(g_cols)
+        self.assertTrue(row_filled.grid == col_filled.grid, "row and col grids don't match")
+    
+    def test_generate_filled(self):
+        b = create_simple_board()
+        g = b.generate_boards(['car'])
+        b2 = next(g)
+        b.print_starts()
+        g2 = b.generate_filled()
+        filled = next(g2)
+        filled.print_starts()
+        # self.assertTrue(filled.is_filled(), "board not filled")
+    
+    def test_generate_filled_adrienne(self):
+        b = create_adrienne_test_board()
+        g = b.generate_boards([])
+        b2 = next(g)
+        b.print_starts()
+        g2 = b2.generate_filled()
+        filled = next(g2)
+        filled.print_starts()
+        filled2 = next(g2)
+        filled2.print_starts()
+        filled3 = next(g2)
+        filled3.print_starts()
+    
+    def test_generate_filled_harder_adriene(self):
+        b = create_harder_adrienne_test_board()
+        g = b.generate_boards([])
+        b.print_starts()
+        b2 = next(g)
+        b2.print_starts()
+        filled_generator = b2.generate_filled()
+        filled = next(filled_generator)
+        filled.print_starts()
+        """
+        filled2 = next(g2)
+        filled2.print_starts()
+        filled3 = next(g2)
+        filled3.print_starts()
+        """
+
+
+def create_adrienne_test_board():
+    blocks = [Square(0, 0), Square(0, 1),
+              Square(2, 1),
+              Square(3, 0), Square(3, 2),
+              Square(4, 1),
+              Square(5, 5)]
+    specified_chars = {Square(0, 2): 'r', Square(0, 3): 'a', Square(0, 4): 'p', Square(0, 5): 'h',
+                       Square(1, 3): 'd', Square(2, 3): 'r', Square(3, 3): 'i', Square(4, 3): 'a', Square(5,3): 'n'}
+    return Board([6, 6], blocks, specified_chars, word_bank)
+
+def create_harder_adrienne_test_board():
+    blocks = [Square(0, 0), Square(0, 1), Square(0, 2),
+              Square(1, 0), Square(1, 1),
+              Square(2, 0),
+              Square(3, 5),
+              Square(4, 4), Square(4, 5),
+              Square(5, 3), Square(5, 4), Square(5, 5)]
+    specified_chars = {Square(1, 2): 'r', Square(1, 3): 'a', Square(1, 4): 'p', Square(1, 5): 'h'}
+    return Board([6, 6], blocks, specified_chars, word_bank)
 
 def create_weird_board():
     blocks = [Square(0, 0), Square(0, 1), Square(0, 5),

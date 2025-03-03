@@ -56,6 +56,8 @@ class TSTrie:
     def wildcard_search_helper(self, node, pattern, index, current_word, results):
         if node is None:
             return
+        if index >= len(pattern):
+            return
 
         letter = pattern[index]
         if letter == '_':
@@ -88,5 +90,11 @@ def gpt_test():
     print(tst.wildcard_search("c_t"))  # ['cat', 'cut'] (assuming 'cut' was added as an example)
     print(tst.wildcard_search("_a_"))  # ['bat', 'bar', 'cat', 'car', 'cap']
 
+def empty_test():
+    from parser import word_bank
+    print(word_bank.wildcard_search('c_t'))
+    print(word_bank.wildcard_search('___'))
+
 if __name__ == '__main__':
-    gpt_test()
+    # gpt_test()
+    empty_test()

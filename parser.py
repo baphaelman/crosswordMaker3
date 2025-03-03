@@ -1,4 +1,4 @@
-from word_structure.tstrie import TSTrie
+from tstrie import TSTrie
 word_bank = TSTrie()
 
 with open('30k.txt', 'r') as file:

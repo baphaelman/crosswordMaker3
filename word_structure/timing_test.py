@@ -1,6 +1,6 @@
 import time
 from parser import common_words
-from word_structure.tstrie import TSTrie
+from tstrie import TSTrie
 from word_structure.trie import Trie
 
 # insertion
