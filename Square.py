@@ -14,6 +14,7 @@ class Square:
     def __hash__(self):
         return hash((self.row, self.col))
 
+""""
 class StartSquare(Square):
     def __init__(self, row, col, len):
         self.row = row
@@ -22,10 +23,12 @@ class StartSquare(Square):
     
     def __repr__(self):
         return "(" + str(self.row) + "," + str(self.col) + "," + str(self.len) + ")"
+"""
 
-class ColumnStartSquare(StartSquare):
+class StartSquare(Square):
     def __init__(self, row, col, len):
-        super().__init__(row, col, len)
+        super().__init__(row, col)
+        self.len = len
         self.word = ["_" for _ in range(self.len)]
     
     def __repr__(self):

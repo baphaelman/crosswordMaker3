@@ -36,8 +36,11 @@ class Board:
                 this_char = specified_chars.get(Square(row, col), '_')
                 grid[square] = this_char
                 if this_char != '_': # if character given
-                    start_square = self.square_to_col_start[square]
-                    start_square.word[square.row - start_square.row] = this_char
+                    col_start = self.square_to_col_start[square]
+                    col_start.word[square.row - col_start.row] = this_char
+
+                    row_start = self.square_to_col_start[square]
+                    row_start.word[square.col - row_start.col] = this_char
                     
         for block in blocks:
             grid[block] = "#"
@@ -70,7 +73,7 @@ class Board:
                     length += 1
                     squares.append(Square(length, col))
 
-                col_start = ColumnStartSquare(0, col, length + 1)
+                col_start = StartSquare(0, col, length + 1)
                 col_start_squares.append(col_start)
                 for square in squares: # assign collected squares
                     self.square_to_col_start[square] = col_start
@@ -98,7 +101,7 @@ class Board:
                 while block.row + length < self.r - 1 and not Square(block.row + length + 1, block.col) in blocks: # not over edge of board and not over another block
                     length += 1
                     squares.append(Square(block.row + length, block.col))
-                col_start = ColumnStartSquare(block.row + 1, block.col, length)
+                col_start = StartSquare(block.row + 1, block.col, length)
                 col_start_squares.append(col_start)
                 for square in squares:
                     self.square_to_col_start[square] = col_start
@@ -110,6 +113,8 @@ class Board:
         yield from self.generate_boards_helper(sorted_words)
     
     def generate_boards_helper(self, needed_words, rows_only=False, cols_only=False): # rows_ and cols_only for testing
+        self.print_starts()
+        print('needed_words', needed_words)
         if len(needed_words) == 0:
             yield self
             return
@@ -122,6 +127,7 @@ class Board:
             for row_start in viable_row_starts:
                 changed_words = self.insert_word_at_start_square(word, row_start, row=True) # insert word
                 if type(changed_words) == dict: # if successful
+                    print('recursing')
                     yield from self.generate_boards_helper(needed_words[1:]) # recurse
                     self.undo_insertion(changed_words, row=True) # undo inserting word
         
@@ -160,7 +166,9 @@ class Board:
                 if self.grid[square] != word[i]: # if wrong letter. otherwise look at next square
                     return False
             else:
-                # perpendicular testing here
+                # perpendicular testing
+                if not self.is_perpendicular_valid(square, word[i], col=True):
+                    return False
                 changed_squares[square] = i
         
         # if valid, insert (should maybe replace with looped insert_char call?)
@@ -184,7 +192,9 @@ class Board:
                 if self.grid[square] != word[i]: # if wrong letter. otherwise look at next square
                     return False
             else:
-                # perpendicular testing here
+                # perpendicular testing
+                if not self.is_perpendicular_valid(square, word[i], col=False):
+                    return False
                 changed_squares[square] = i
         
         # if valid, insert (should maybe replace with looped insert_char call?)
@@ -192,7 +202,24 @@ class Board:
         for square in changed_squares:
             letter = word[changed_squares[square]]
             self.grid[square] = letter # change grid
+        
+            row_start = self.square_to_row_start[square]
+            row_start.word[square.col - row_start.col] = letter # change row_start's word
         return changed_squares
+    
+    def is_perpendicular_valid(self, square, letter, col=True): # checking column by default
+        if col:
+            start_square = self.square_to_col_start[square]
+            changed_word = list(start_square.word)
+            changed_word[square.row - start_square.row] = letter
+        else:
+            start_square = self.square_to_row_start[square]
+            changed_word = list(start_square.word)
+            changed_word[square.col - start_square.col] = letter
+
+        template = ''.join(changed_word)
+        return self.word_bank.wildcard_search(template)
+
     
     def undo_insertion(self, changed_squares, col=False, row=False):
         if not col and not row:
@@ -218,6 +245,8 @@ class Board:
     def undo_col_insertion(self, changed_squares):
         for square in changed_squares:
             self.grid[square] = '_' # change grid
+            row_start = self.square_to_row_start[square]
+            row_start.word[square.col - row_start.col] = '_' # change row_start's word
 
     def __repr__(self):
         return_str = ""
