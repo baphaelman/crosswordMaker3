@@ -273,7 +273,7 @@ class Board:
             pattern = ''.join(row_start.word)
             #print('row_start:', row_start)
             #print('pattern:', pattern)
-            potential_words = self.word_bank.wildcard_search(pattern)
+            potential_words = self.word_bank.wildcard_search(pattern, ignore=self.inserted_words)
             #print('potential words:', potential_words)
 
             # print()

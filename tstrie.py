@@ -48,12 +48,12 @@ class TSTrie:
             else:
                 return node.is_end
     
-    def wildcard_search(self, pattern):
+    def wildcard_search(self, pattern, ignore=[]):
         results = []
-        self.wildcard_search_helper(self.root, pattern, 0, "", results)
+        self.wildcard_search_helper(self.root, pattern, 0, "", results, ignore)
         return results
     
-    def wildcard_search_helper(self, node, pattern, index, current_word, results):
+    def wildcard_search_helper(self, node, pattern, index, current_word, results, ignore):
         if node is None:
             return
         if index >= len(pattern):
@@ -62,21 +62,21 @@ class TSTrie:
         letter = pattern[index]
         if letter == '_':
             if node.left:
-                self.wildcard_search_helper(node.left, pattern, index, current_word, results)
-            self.wildcard_search_helper_middle(node, pattern, index, current_word, results)
+                self.wildcard_search_helper(node.left, pattern, index, current_word, results, ignore)
+            self.wildcard_search_helper_middle(node, pattern, index, current_word, results, ignore)
             if node.right:
-                self.wildcard_search_helper(node.right, pattern, index, current_word, results)
+                self.wildcard_search_helper(node.right, pattern, index, current_word, results, ignore)
         elif letter < node.char:
-            self.wildcard_search_helper(node.left, pattern, index, current_word, results)
+            self.wildcard_search_helper(node.left, pattern, index, current_word, results, ignore)
         elif letter > node.char:
-            self.wildcard_search_helper(node.right, pattern, index, current_word, results)
+            self.wildcard_search_helper(node.right, pattern, index, current_word, results, ignore)
         else:
-            self.wildcard_search_helper_middle(node, pattern, index, current_word, results)
+            self.wildcard_search_helper_middle(node, pattern, index, current_word, results, ignore)
 
-    def wildcard_search_helper_middle(self, node, pattern, index, current_word, results):
+    def wildcard_search_helper_middle(self, node, pattern, index, current_word, results, ignore):
         if index + 1 < len(pattern):
-            self.wildcard_search_helper(node.middle, pattern, index + 1, current_word + node.char, results)
-        elif index == len(pattern) - 1 and node.is_end:
+            self.wildcard_search_helper(node.middle, pattern, index + 1, current_word + node.char, results, ignore)
+        elif (index == len(pattern) - 1) and (node.is_end) and (current_word + node.char not in ignore):
             results.append(current_word + node.char)
 
 def gpt_test():
