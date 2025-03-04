@@ -1,4 +1,5 @@
 from Square import *
+import random
 
 class Board:
     # ATTRIBUTES
@@ -223,10 +224,12 @@ class Board:
             changed_word[square.col - start_square.col] = letter
 
         template = ''.join(changed_word)
-        return self.word_bank.wildcard_search(template)
+        return_list = self.word_bank.wildcard_search(template, ignore=self.inserted_words)
+        random.shuffle(return_list)
+        return return_list
 
     
-    def undo_insertion(self, changed_squares, col=False, row=False):
+    def undo_insertion(self, changed_squares, word, col=False, row=False):
         if not col and not row:
             raise ValueError("Must specify row or col")
         
@@ -234,7 +237,7 @@ class Board:
             self.undo_col_insertion(changed_squares)
         else:
             self.undo_row_insertion(changed_squares)
-        self.inserted_words.pop()
+        self.inserted_words.remove(word)
 
     def undo_row_insertion(self, changed_squares):
         for square in changed_squares:
@@ -265,7 +268,10 @@ class Board:
         yield from self.generate_filled_helper()
     
     def generate_filled_helper(self):
-        # self.print_starts()
+        self.print_starts()
+        print(self.row_start_squares)
+        print(self.col_start_squares)
+        print()
         if self.incomplete_row_start_squares == []:
             yield self
         else:
@@ -274,14 +280,15 @@ class Board:
             #print('row_start:', row_start)
             #print('pattern:', pattern)
             potential_words = self.word_bank.wildcard_search(pattern, ignore=self.inserted_words)
-            #print('potential words:', potential_words)
+            random.shuffle(potential_words)
+            # print('potential words:', potential_words)
 
             # print()
             for word in potential_words:
                 undo_input = self.insert_word_at_start_square(word, row_start, row=True)
                 if type(undo_input) == dict:
                     yield from self.generate_filled()
-                    self.undo_insertion(undo_input, row=True)
+                    self.undo_insertion(undo_input, word, row=True)
 
     def __repr__(self):
         return_str = ""
