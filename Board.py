@@ -41,7 +41,7 @@ class Board:
                     col_start = self.square_to_col_start[square]
                     col_start.word[square.row - col_start.row] = this_char
 
-                    row_start = self.square_to_col_start[square]
+                    row_start = self.square_to_row_start[square]
                     row_start.word[square.col - row_start.col] = this_char
                     
         for block in blocks:
@@ -128,19 +128,19 @@ class Board:
         if not cols_only:
             viable_row_starts = [square for square in self.incomplete_row_start_squares if square.len == length]
             for row_start in viable_row_starts:
-                changed_words = self.insert_word_at_start_square(word, row_start, row=True) # insert word
+                changed_words, accidental_words = self.insert_word_at_start_square(word, row_start, row=True) # insert word
                 if type(changed_words) == dict: # if successful
                     yield from self.generate_needed_words_helper(needed_words[1:]) # recurse
-                    self.undo_insertion(changed_words, row=True) # undo inserting word
+                    self.undo_insertion(changed_words, word, accidental_words, row=True) # undo inserting word
         
         if not rows_only:
             viable_col_starts = [square for square in self.col_start_squares if square.len == length]
             # do same with col_starts
             for col_start in viable_col_starts:
-                changed_words = self.insert_word_at_start_square(word, col_start, col=True)
+                changed_words, accidental_words = self.insert_word_at_start_square(word, col_start, col=True)
                 if type(changed_words) == dict:
                     yield from self.generate_needed_words_helper(needed_words[1:])
-                    self.undo_insertion(changed_words, col=True)
+                    self.undo_insertion(changed_words, word, accidental_words, col=True)
 
     # returns False if cannot insert, modifies grid and returns list of Squares that were modified if it can
     # still need to do perpendicular checking
@@ -150,69 +150,90 @@ class Board:
         # print('trying to insert', word, 'at', start_square)
 
         if col:
-            return_val = self.insert_word_at_col_start(word, start_square)
+            return_val, accidental_words = self.insert_word_at_col_start(word, start_square)
         else:
-            return_val = self.insert_word_at_row_start(word, start_square)
+            return_val, accidental_words = self.insert_word_at_row_start(word, start_square)
         if type(return_val) == dict: # if word has been inserted
             self.inserted_words.append(word)
             # print('successful!')
             # self.print_starts()
-        return return_val
+        return (return_val, accidental_words)
 
     def insert_word_at_row_start(self, word, row_start):
         row, col = row_start.row, row_start.col
         changed_squares = {} # square to word index, to return
+        accidentally_added_words = [] # for self.inserted_words
 
         # go through squares, checking for validity
         for i in range(len(word)):
             square = Square(row, col + i)
             if self.grid[square] != '_': # if established with letter already
                 if self.grid[square] != word[i]: # if wrong letter. otherwise look at next square
-                    return False
+                    return False, False
             else:
                 # perpendicular testing
-                if not self.is_perpendicular_valid(square, word[i], col=True):
-                    return False
+                is_valid, accidentally_completed_word = self.is_perpendicular_valid(square, word[i])
+                if not is_valid:
+                    return False, False
+                if accidentally_completed_word:
+                    accidentally_added_words.append(accidentally_completed_word)
                 changed_squares[square] = i
         
         # if valid, insert (should maybe replace with looped insert_char call?)
-        self.incomplete_row_start_squares.remove(row_start)
-        for square in changed_squares:
-            letter = word[changed_squares[square]]
+        if len(accidentally_added_words) == len(set(accidentally_added_words)): # if no duplicates
+            self.incomplete_row_start_squares.remove(row_start)
+            for accidental_word in accidentally_added_words:
+                self.inserted_words.append(accidental_word)
+            
+            for square in changed_squares:
+                letter = word[changed_squares[square]]
 
-            self.grid[square] = letter # change grid
-            col_start = self.square_to_col_start[square]
-            col_start.word[square.row - col_start.row] = letter # change col_start's word
-        
-        row_start.word = list(word)
-        return changed_squares
+                self.grid[square] = letter # change grid
+                col_start = self.square_to_col_start[square]
+                col_start.word[square.row - col_start.row] = letter # change col_start's word
+            
+            row_start.word = list(word)
+            return (changed_squares, accidentally_added_words)
+        else:
+            return False, False
     
     def insert_word_at_col_start(self, word, col_start):
         row, col = col_start.row, col_start.col
         changed_squares = {} # square to word index, to return
+        accidentally_added_words = [] # for self.inserted_words
 
         # go through squares, checking for validity
         for i in range(len(word)):
             square = Square(row + i, col)
             if self.grid[square] != '_': # if established with letter already
                 if self.grid[square] != word[i]: # if wrong letter. otherwise look at next square
-                    return False
+                    return False, False
             else:
                 # perpendicular testing
-                if not self.is_perpendicular_valid(square, word[i], col=False):
-                    return False
+                is_valid, accidentally_completed_word = self.is_perpendicular_valid(square, word[i], col=False)
+                if not is_valid:
+                    return False, False,
+                if accidentally_completed_word:
+                    accidentally_added_words.append(accidentally_completed_word)
                 changed_squares[square] = i
         
         # if valid, insert (should maybe replace with looped insert_char call?)
-        col_start.word = list(word)
-        for square in changed_squares:
-            letter = word[changed_squares[square]]
-            self.grid[square] = letter # change grid
-        
-            row_start = self.square_to_row_start[square]
-            row_start.word[square.col - row_start.col] = letter # change row_start's word
-        return changed_squares
+        if len(accidentally_added_words) == len(set(accidentally_added_words)): # if no duplicates
+            col_start.word = list(word)
+            for accidental_word in accidentally_added_words:
+                self.inserted_words.append(accidental_word)
+            
+            for square in changed_squares:
+                letter = word[changed_squares[square]]
+                self.grid[square] = letter # change grid
+            
+                row_start = self.square_to_row_start[square]
+                row_start.word[square.col - row_start.col] = letter # change row_start's word
+            return (changed_squares, accidentally_added_words)
+        else:
+            return False, False
     
+    # returns tuple: first element is whether the perpendicular word is valid, second word accidentally completed if it ever is
     def is_perpendicular_valid(self, square, letter, col=True): # checking column by default
         if col:
             start_square = self.square_to_col_start[square]
@@ -223,13 +244,22 @@ class Board:
             changed_word = list(start_square.word)
             changed_word[square.col - start_square.col] = letter
 
+        #print('start_square:', start_square)
         template = ''.join(changed_word)
-        return_list = self.word_bank.wildcard_search(template, ignore=self.inserted_words)
-        random.shuffle(return_list)
-        return return_list
+        is_valid = self.word_bank.wildcard_search(template, ignore=self.inserted_words) != []
+        is_accidentally_completed = (self.num_underscores(start_square.word) == 1) and (self.num_underscores(changed_word) == 0) # one slot and filled with this insertion
+        completed_word = ''
+        if is_accidentally_completed:
+            completed_word = ''.join(changed_word)
+        #print('inserting', letter, 'at', square)
+        #print(self.num_underscores(start_square.word), (self.num_underscores(changed_word)))
+        #print('result: ', is_valid, completed_word)
+        return (is_valid, completed_word)
 
+    def num_underscores(self, list):
+        return sum([1 for char in list if char == '_'])
     
-    def undo_insertion(self, changed_squares, word, col=False, row=False):
+    def undo_insertion(self, changed_squares, word, accidental_words, col=False, row=False):
         if not col and not row:
             raise ValueError("Must specify row or col")
         
@@ -237,7 +267,11 @@ class Board:
             self.undo_col_insertion(changed_squares)
         else:
             self.undo_row_insertion(changed_squares)
+        
         self.inserted_words.remove(word)
+        for accidental_word in accidental_words:
+            self.inserted_words.remove(accidental_word)
+
 
     def undo_row_insertion(self, changed_squares):
         for square in changed_squares:
@@ -269,26 +303,21 @@ class Board:
     
     def generate_filled_helper(self):
         self.print_starts()
-        print(self.row_start_squares)
-        print(self.col_start_squares)
+        print(self.inserted_words)
         print()
         if self.incomplete_row_start_squares == []:
             yield self
         else:
             row_start = self.incomplete_row_start_squares[0]
             pattern = ''.join(row_start.word)
-            #print('row_start:', row_start)
-            #print('pattern:', pattern)
             potential_words = self.word_bank.wildcard_search(pattern, ignore=self.inserted_words)
             random.shuffle(potential_words)
-            # print('potential words:', potential_words)
 
-            # print()
             for word in potential_words:
-                undo_input = self.insert_word_at_start_square(word, row_start, row=True)
+                undo_input, accidental_words = self.insert_word_at_start_square(word, row_start, row=True)
                 if type(undo_input) == dict:
                     yield from self.generate_filled()
-                    self.undo_insertion(undo_input, word, row=True)
+                    self.undo_insertion(undo_input, word, accidental_words, row=True)
 
     def __repr__(self):
         return_str = ""
