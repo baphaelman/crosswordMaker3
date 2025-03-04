@@ -19,7 +19,7 @@ class Board:
     # HELPERS
     # print_starts(): prints board with >, v, and X indicating row, column, and both starts respectively
 
-    def __init__(self, dimensions, blocks, specified_chars, word_bank):
+    def __init__(self, dimensions, word_bank, blocks=[], specified_chars={}):
         self.r, self.c = dimensions[0], dimensions[1]
         self.square_to_row_start, self.square_to_col_start = {}, {}
         self.row_start_squares, self.col_start_squares = self.assign_start_squares(blocks) # also assigns square_to_row_ and col_start
@@ -109,14 +109,14 @@ class Board:
 
         return row_start_squares, col_start_squares
     
-    def generate_boards(self, needed_words):
+    def generate_needed_words(self, needed_words):
         # add needed_words to word_bank
         for word in needed_words:
             self.word_bank.insert(word)
         sorted_words = sorted(needed_words, key=len, reverse=True)
-        yield from self.generate_boards_helper(sorted_words)
+        yield from self.generate_needed_words_helper(sorted_words)
     
-    def generate_boards_helper(self, needed_words, rows_only=False, cols_only=False): # rows_ and cols_only for testing
+    def generate_needed_words_helper(self, needed_words, rows_only=False, cols_only=False): # rows_ and cols_only for testing
         if len(needed_words) == 0:
             yield self
             return
@@ -129,7 +129,7 @@ class Board:
             for row_start in viable_row_starts:
                 changed_words = self.insert_word_at_start_square(word, row_start, row=True) # insert word
                 if type(changed_words) == dict: # if successful
-                    yield from self.generate_boards_helper(needed_words[1:]) # recurse
+                    yield from self.generate_needed_words_helper(needed_words[1:]) # recurse
                     self.undo_insertion(changed_words, row=True) # undo inserting word
         
         if not rows_only:
@@ -138,7 +138,7 @@ class Board:
             for col_start in viable_col_starts:
                 changed_words = self.insert_word_at_start_square(word, col_start, col=True)
                 if type(changed_words) == dict:
-                    yield from self.generate_boards_helper(needed_words[1:])
+                    yield from self.generate_needed_words_helper(needed_words[1:])
                     self.undo_insertion(changed_words, col=True)
 
     # returns False if cannot insert, modifies grid and returns list of Squares that were modified if it can
@@ -237,21 +237,27 @@ class Board:
         self.inserted_words.pop()
 
     def undo_row_insertion(self, changed_squares):
-        s = False
         for square in changed_squares:
-            s = square
             self.grid[square] = '_' # change grid
+            # revert col_starts
             col_start = self.square_to_col_start[square]
             col_start.word[square.row - col_start.row] = '_' # change col_start's word
-        if s: # if word wasn't already filled, basically
-            row_start = self.square_to_row_start[s]
+            # revert row_starts
+            row_start = self.square_to_row_start[square]
+            row_start.word[square.col - row_start.col] = '_' # change row_start's word
+        if changed_squares: # if word wasn't already filled, basically
+            row_start = self.square_to_row_start[square]
             self.incomplete_row_start_squares.append(row_start)
     
     def undo_col_insertion(self, changed_squares):
         for square in changed_squares:
             self.grid[square] = '_' # change grid
+            # revert row_starts
             row_start = self.square_to_row_start[square]
             row_start.word[square.col - row_start.col] = '_' # change row_start's word
+            # revert col_starts
+            col_start = self.square_to_col_start[square]
+            col_start.word[square.row - col_start.row] = '_' # change col_start's word
     
     def generate_filled(self):
         self.incomplete_row_start_squares.sort(key=lambda x: x.col)
@@ -259,18 +265,24 @@ class Board:
         yield from self.generate_filled_helper()
     
     def generate_filled_helper(self):
+        # self.print_starts()
         if self.incomplete_row_start_squares == []:
             yield self
         else:
             row_start = self.incomplete_row_start_squares[0]
             pattern = ''.join(row_start.word)
+            #print('row_start:', row_start)
+            #print('pattern:', pattern)
             potential_words = self.word_bank.wildcard_search(pattern)
+            #print('potential words:', potential_words)
+
+            # print()
             for word in potential_words:
                 undo_input = self.insert_word_at_start_square(word, row_start, row=True)
-                if undo_input:
+                if type(undo_input) == dict:
                     yield from self.generate_filled()
                     self.undo_insertion(undo_input, row=True)
-                    
+
     def __repr__(self):
         return_str = ""
         for row in range(self.r):
@@ -298,6 +310,7 @@ class Board:
                     else:
                         return_str += self.grid[square] + " " # if empty and 'center'
             return_str += "\n"
+        return_str = return_str.rstrip('\n')
         print(return_str)
 
 def square_to_starts_test():
